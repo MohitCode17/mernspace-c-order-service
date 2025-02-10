@@ -9,4 +9,11 @@ const customerController = new CustomerController();
 // GET CUSTOMER
 router.get("/", authenticate, asyncWrapper(customerController.getCustomer));
 
+// ADD ADDRESSES
+router.patch(
+  "/addresses/:id",
+  authenticate,
+  asyncWrapper(customerController.addAddresses),
+);
+
 export default router;
