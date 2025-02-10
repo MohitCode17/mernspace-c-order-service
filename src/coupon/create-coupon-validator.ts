@@ -1,6 +1,6 @@
 import { body } from "express-validator";
 
-export const validateCoupon = [
+export const createValidCoupon = [
   body("title").notEmpty().withMessage("Title is required"),
 
   body("code")

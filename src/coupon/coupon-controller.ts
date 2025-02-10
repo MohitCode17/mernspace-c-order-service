@@ -4,6 +4,8 @@ import Coupon from "./coupon-model";
 import createHttpError from "http-errors";
 import { validationResult } from "express-validator";
 
+// TODO: ADD SERVICE LAYER FOR THIS CONTROLLER WITH DEPENDENCY INJECTION.
+
 export class CouponController {
   createCoupon = async (req: Request, res: Response, next: NextFunction) => {
     const result = validationResult(req);
@@ -38,5 +40,31 @@ export class CouponController {
     });
 
     return res.status(201).json(coupon);
+  };
+
+  verifyCoupon = async (req: Request, res: Response, next: NextFunction) => {
+    const result = validationResult(req);
+
+    if (!result.isEmpty()) {
+      return next(createHttpError(400, result.array()[0].msg as string));
+    }
+
+    const { code, tenantId } = req.body;
+
+    const coupon = await Coupon.findOne({ code: code.toUpperCase(), tenantId });
+
+    if (!coupon) {
+      return next(createHttpError(400, "Coupon does not exists"));
+    }
+
+    // VALIDATE EXPIRY
+    const currentDate = new Date();
+    const couponDate = new Date(coupon.validUpto);
+
+    if (currentDate >= couponDate) {
+      return res.json({ valid: false, discount: 0 });
+    }
+
+    return res.json({ valid: true, discount: coupon.discount });
   };
 }
