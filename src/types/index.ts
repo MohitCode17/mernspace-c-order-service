@@ -12,3 +12,20 @@ export interface AuthRequest extends Request {
     tenant: string;
   };
 }
+
+export interface ProductConfiguration {
+  priceType: "base" | "aditional";
+  availableOptions: {
+    [key: string]: number;
+  };
+}
+
+export interface ProductPricingCache {
+  productId: string;
+  priceConfiguration: ProductConfiguration;
+}
+
+export interface ProductMessage {
+  id: string;
+  priceConfiguration: ProductConfiguration;
+}
