@@ -35,7 +35,11 @@ export class OrderController {
 
     const taxes = Math.round((priceAfterDiscount * TAXES_PERCENT) / 100);
 
-    return res.json({ taxes });
+    const DELIVERY_CHARGES = 50;
+
+    const finalTotal = priceAfterDiscount + taxes + DELIVERY_CHARGES;
+
+    return res.json({ finalTotal });
   };
 
   private calculateTotal = async (cart: CartItem[]) => {
