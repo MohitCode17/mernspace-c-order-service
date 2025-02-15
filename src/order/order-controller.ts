@@ -8,16 +8,27 @@ import {
 import productCacheModel from "../productCache/productCacheModel";
 import toppingCacheModel from "../toppingCache/toppingCacheModel";
 import couponModel from "../coupon/coupon-model";
+import orderModel from "./order-model";
+import { OrderStatus, PaymentStatus } from "./order-type";
 
 export class OrderController {
   createOrder = async (req: Request, res: Response) => {
     // TODO: VALIDATE REQUEST DATA
-    const totalPrice = await this.calculateTotal(req.body.cart);
+    const {
+      cart,
+      couponCode,
+      tenantId,
+      paymentMode,
+      customerId,
+      comment,
+      address,
+    } = req.body;
+
+    // CALCULATE THE TOTAL PRICE OF PRODUCT IN THE CART
+    const totalPrice = await this.calculateTotal(cart);
 
     // CALCULATE DISCOUNT
     let discountPercentage = 0;
-    const couponCode = req.body.couponCode;
-    const tenantId = req.body.tenantId;
 
     if (couponCode) {
       discountPercentage = await this.getDiscountPercentage(
@@ -28,18 +39,37 @@ export class OrderController {
 
     const discountAmount = Math.round((totalPrice * discountPercentage) / 100);
 
+    // PRICE AFTER DISCOUNT AVAILED
     const priceAfterDiscount = totalPrice - discountAmount;
+
     // CALCULATE TAXES
     // TODO: MAY BE STORE IN DB FOR EACH TENANT
     const TAXES_PERCENT = 18;
 
     const taxes = Math.round((priceAfterDiscount * TAXES_PERCENT) / 100);
 
+    // CALCULATE DELIVERY CHARGES
     const DELIVERY_CHARGES = 50;
 
     const finalTotal = priceAfterDiscount + taxes + DELIVERY_CHARGES;
 
-    return res.json({ finalTotal });
+    // SAVE NEW ORDER TO DATABASE
+    const newOrder = await orderModel.create({
+      cart,
+      address,
+      comment,
+      customerId,
+      deliveryCharges: DELIVERY_CHARGES,
+      discount: discountAmount,
+      taxes,
+      tenantId,
+      total: finalTotal,
+      paymentMode,
+      orderStatus: OrderStatus.RECEIVED,
+      paymentStatus: PaymentStatus.PENDING,
+    });
+
+    return res.json({ newOrder });
   };
 
   private calculateTotal = async (cart: CartItem[]) => {
