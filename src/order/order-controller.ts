@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import {
   CartItem,
   ProductPricingCache,
@@ -10,9 +10,12 @@ import toppingCacheModel from "../toppingCache/toppingCacheModel";
 import couponModel from "../coupon/coupon-model";
 import orderModel from "./order-model";
 import { OrderStatus, PaymentStatus } from "./order-type";
+import mongoose from "mongoose";
+import idempotencyModel from "../idempotency/idempotency-model";
+import createHttpError from "http-errors";
 
 export class OrderController {
-  createOrder = async (req: Request, res: Response) => {
+  createOrder = async (req: Request, res: Response, next: NextFunction) => {
     // TODO: VALIDATE REQUEST DATA
     const {
       cart,
@@ -53,23 +56,60 @@ export class OrderController {
 
     const finalTotal = priceAfterDiscount + taxes + DELIVERY_CHARGES;
 
-    // SAVE NEW ORDER TO DATABASE
-    const newOrder = await orderModel.create({
-      cart,
-      address,
-      comment,
-      customerId,
-      deliveryCharges: DELIVERY_CHARGES,
-      discount: discountAmount,
-      taxes,
-      tenantId,
-      total: finalTotal,
-      paymentMode,
-      orderStatus: OrderStatus.RECEIVED,
-      paymentStatus: PaymentStatus.PENDING,
-    });
+    // GET IDEMPOTENCY KEY FROM HEADERS
+    const idempotencyKey = req.headers["idempotency-key"];
 
-    return res.json({ newOrder });
+    const idempotency = await idempotencyModel.findOne({ key: idempotencyKey });
+
+    let newOrder = idempotency ? [idempotency.response] : [];
+
+    if (!idempotency) {
+      // CREATE A NEW ORDER IF NO IDEMPOTENCY KEY IS EXISTS.
+
+      // USING DATABASE TRANSACTION
+      const session = await mongoose.startSession();
+      await session.startTransaction();
+
+      try {
+        const newOrder = await orderModel.create(
+          [
+            {
+              cart,
+              address,
+              comment,
+              customerId,
+              deliveryCharges: DELIVERY_CHARGES,
+              discount: discountAmount,
+              taxes,
+              tenantId,
+              total: finalTotal,
+              paymentMode,
+              orderStatus: OrderStatus.RECEIVED,
+              paymentStatus: PaymentStatus.PENDING,
+            },
+          ],
+          { session },
+        );
+
+        await idempotencyModel.create(
+          [{ key: idempotencyKey, response: newOrder[0] }],
+          { session },
+        );
+
+        await session.commitTransaction();
+      } catch (err) {
+        await session.abortTransaction();
+        await session.endSession();
+
+        return next(createHttpError(500, err.message));
+      } finally {
+        await session.endSession();
+      }
+    }
+
+    // TODO: PAYMENT PROCESSING...
+
+    return res.json({ newOrder: newOrder });
   };
 
   private calculateTotal = async (cart: CartItem[]) => {
