@@ -17,6 +17,19 @@ export class StripeGW implements PaymentGW {
         metadata: {
           orderId: options.orderId,
         },
+        billing_address_collection: "required",
+        // TODO: WE'LL CAPTURE STRUCTURED ADDRESS FROM FRONTEND THEN IMPLMENTN THIS FEATURE
+        // payment_intent_data: {
+        //   shipping: {
+        //     name: "Rohit Sharma",
+        //     address: {
+        //       line1: "New Lane",
+        //       city: "Mumbai",
+        //       country: "India",
+        //       postal_code: "1178774",
+        //     },
+        //   },
+        // },
         line_items: [
           {
             price_data: {
