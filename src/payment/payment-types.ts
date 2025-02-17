@@ -8,17 +8,17 @@ export interface PaymentOptions {
 
 type GatewayPaymentStatus = "no_payment_required" | "paid" | "unpaid";
 
-interface PaymentSession {
+export interface PaymentSession {
   id: string;
   paymentUrl: string;
   paymentStatus: GatewayPaymentStatus;
 }
 
-interface CustomMetadata {
+export interface CustomMetadata {
   orderId: string;
 }
 
-interface VerifiedSession {
+export interface VerifiedSession {
   id: string;
   metadata: CustomMetadata;
   paymentStatus: GatewayPaymentStatus;

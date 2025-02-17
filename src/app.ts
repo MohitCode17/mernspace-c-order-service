@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import customerRouter from "./customer/customer-router";
 import couponRouter from "./coupon/coupon-router";
 import orderRouter from "./order/order-router";
+import paymentRouter from "./payment/payment-route";
 import cors from "cors";
 
 const app = express();
@@ -24,6 +25,7 @@ app.get("/", (req: Request, res: Response) => {
 app.use("/customer", customerRouter);
 app.use("/coupon", couponRouter);
 app.use("/orders", orderRouter);
+app.use("/payments", paymentRouter);
 
 app.use(globalErrorHandler);
 
