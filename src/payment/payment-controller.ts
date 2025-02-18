@@ -2,15 +2,18 @@ import { Request, Response } from "express";
 import { PaymentGW } from "./payment-types";
 import orderModel from "../order/order-model";
 import { PaymentStatus } from "../order/order-type";
+import { MessageBroker } from "../types/broker";
 
 // stripe listen --forward-to localhost:8000/api/order/payments/webhook
 
 export class PaymentController {
-  constructor(private paymentGw: PaymentGW) {}
+  constructor(
+    private paymentGw: PaymentGW,
+    private broker: MessageBroker,
+  ) {}
 
   handleWebhook = async (req: Request, res: Response) => {
     const webhookBody = req.body;
-    console.log("webhookBody", webhookBody);
 
     if (webhookBody.type === "checkout.session.completed") {
       const verifiedSession = await this.paymentGw.getSession(
@@ -19,7 +22,7 @@ export class PaymentController {
 
       const isPaymentSuccess = verifiedSession.paymentStatus === "paid";
 
-      const updatedOrder = await orderModel.updateOne(
+      const updatedOrder = await orderModel.findOneAndUpdate(
         {
           _id: verifiedSession.metadata.orderId,
         },
@@ -31,7 +34,8 @@ export class PaymentController {
         { new: true },
       );
 
-      // TODO: SEND UPDATED ORDER DATA TO KAFKA BROKER
+      // TODO: THINK ABOUT BROKER MESSAGE FAIL
+      await this.broker.sendMessage("order", JSON.stringify(updatedOrder));
     }
 
     return res.json({ success: true });

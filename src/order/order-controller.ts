@@ -14,9 +14,13 @@ import mongoose from "mongoose";
 import idempotencyModel from "../idempotency/idempotency-model";
 import createHttpError from "http-errors";
 import { PaymentGW } from "../payment/payment-types";
+import { MessageBroker } from "../types/broker";
 
 export class OrderController {
-  constructor(private paymentGw: PaymentGW) {}
+  constructor(
+    private paymentGw: PaymentGW,
+    private broker: MessageBroker,
+  ) {}
 
   createOrder = async (req: Request, res: Response, next: NextFunction) => {
     // TODO: VALIDATE REQUEST DATA
@@ -119,10 +123,15 @@ export class OrderController {
         currency: "inr",
         idempotencyKey: idempotencyKey as string,
       });
+
+      await this.broker.sendMessage("order", JSON.stringify(newOrder));
+
       return res.json({ paymentUrl: session.paymentUrl });
     }
 
-    // TODO: UPDATE ORDER DOCUMENT -> PAYMENTID -> SESSIONID
+    // SEND MESSAGE TO BROKER
+    await this.broker.sendMessage("order", JSON.stringify(newOrder));
+
     return res.json({ paymentUrl: null }); // COD
   };
 

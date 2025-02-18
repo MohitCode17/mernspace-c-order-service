@@ -14,6 +14,7 @@ const startServer = async () => {
 
     // CONNECT TO KAFKA
     broker = createMessageBroker();
+    await broker.connectProducer();
     await broker.connectConsumer();
     await broker.consumeMessage(["product", "topping"], false);
 
@@ -26,6 +27,7 @@ const startServer = async () => {
   } catch (err: unknown) {
     if (err instanceof Error) {
       if (broker) {
+        await broker.disconnectProducer();
         await broker.disconnectConsumer();
       }
       logger.error("Error happened: ", err.message);
