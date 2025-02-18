@@ -21,6 +21,7 @@ export class StripeGW implements PaymentGW {
       {
         metadata: {
           orderId: options.orderId,
+          restaurantId: options.tenantId,
         },
         billing_address_collection: "required",
         // TODO: WE'LL CAPTURE STRUCTURED ADDRESS FROM FRONTEND THEN IMPLMENTN THIS FEATURE
@@ -50,8 +51,8 @@ export class StripeGW implements PaymentGW {
           },
         ],
         mode: "payment",
-        success_url: `http://localhost:3000/payment?success=true&orderId=${options.orderId}`,
-        cancel_url: `http://localhost:3000/payment?success=false&orderId=${options.orderId}`,
+        success_url: `http://localhost:3000/payment?success=true&orderId=${options.orderId}&restaurantId=${options.tenantId}`,
+        cancel_url: `http://localhost:3000/payment?success=false&orderId=${options.orderId}&restaurantId=${options.tenantId}`,
       },
       { idempotencyKey: options.idempotencyKey },
     );
