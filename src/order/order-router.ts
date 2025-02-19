@@ -14,4 +14,7 @@ const orderController = new OrderController(paymentGw, broker);
 // CREAE ORDER ROUTER
 router.post("/", authenticate, asyncWrapper(orderController.createOrder));
 
+// GET MY ORDERS
+router.get("/mine", authenticate, asyncWrapper(orderController.getMine));
+
 export default router;
