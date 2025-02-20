@@ -161,7 +161,24 @@ export class OrderController {
     const orderId = req.params.orderId;
     const { sub: userId, role, tenant: tenantId } = req.auth;
 
-    const order = await orderModel.findOne({ _id: orderId });
+    const fields = req.query.fields
+      ? req.query.fields.toString().split(",")
+      : []; // ["orderStatus", "paymentStatus"]
+
+    const projection = fields.reduce(
+      (acc, field) => {
+        acc[field] = 1;
+        return acc;
+      },
+      {} as Record<string, 1>,
+    );
+
+    // {
+    //   orderStatus: 1,
+    //   paymentStatus: 1,
+    // }
+
+    const order = await orderModel.findOne({ _id: orderId }, projection);
 
     if (!order) return next(createHttpError(400, "Order does not exists"));
 
