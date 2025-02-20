@@ -17,4 +17,7 @@ router.post("/", authenticate, asyncWrapper(orderController.createOrder));
 // GET MY ORDERS
 router.get("/mine", authenticate, asyncWrapper(orderController.getMine));
 
+// GET SINGLE ORDER
+router.get("/:orderId", authenticate, asyncWrapper(orderController.getSingle));
+
 export default router;

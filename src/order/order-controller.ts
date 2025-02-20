@@ -157,6 +157,41 @@ export class OrderController {
     return res.json(orders);
   };
 
+  getSingle = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    const orderId = req.params.orderId;
+    const { sub: userId, role, tenant: tenantId } = req.auth;
+
+    const order = await orderModel.findOne({ _id: orderId });
+
+    if (!order) return next(createHttpError(400, "Order does not exists"));
+
+    // ROLE ACCESS FOR THIS ENDPOINT
+    // ADMIN CAN ACCESS
+    if (role === "admin") {
+      return res.json(order);
+    }
+
+    // MANAGER(FOR THEIR OWN RESTAURANT)
+    const myRestaurantOrder = order.tenantId === String(tenantId);
+
+    if (role === "manager" && myRestaurantOrder) {
+      return res.json(order);
+    }
+
+    // CUSTOMER(FOR THEIR OWN ORDER)
+    if (role === "customer") {
+      const customer = await customerModel.findOne({ userId });
+
+      if (!customer) return next(createHttpError(400, "No customer found."));
+
+      if (order.customerId.toString() === customer._id.toString()) {
+        return res.json(order);
+      }
+    }
+
+    return next(createHttpError(403, "Operation not permitted."));
+  };
+
   private calculateTotal = async (cart: CartItem[]) => {
     // GET THE PRODUCT IDS FROM CART
     const productIds = cart.map((item) => item._id);
