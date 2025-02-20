@@ -170,7 +170,7 @@ export class OrderController {
         acc[field] = 1;
         return acc;
       },
-      {} as Record<string, 1>,
+      { customerId: 1 },
     );
 
     // {
@@ -178,7 +178,10 @@ export class OrderController {
     //   paymentStatus: 1,
     // }
 
-    const order = await orderModel.findOne({ _id: orderId }, projection);
+    const order = await orderModel
+      .findOne({ _id: orderId }, projection)
+      .populate("customerId")
+      .exec();
 
     if (!order) return next(createHttpError(400, "Order does not exists"));
 
@@ -201,7 +204,7 @@ export class OrderController {
 
       if (!customer) return next(createHttpError(400, "No customer found."));
 
-      if (order.customerId.toString() === customer._id.toString()) {
+      if (order.customerId._id.toString() === customer._id.toString()) {
         return res.json(order);
       }
     }
