@@ -4,6 +4,7 @@ import { Request as AuthRequest } from "express-jwt";
 import {
   CartItem,
   ProductPricingCache,
+  ROLES,
   Topping,
   ToppingPriceCache,
 } from "../types";
@@ -187,19 +188,19 @@ export class OrderController {
 
     // ROLE ACCESS FOR THIS ENDPOINT
     // ADMIN CAN ACCESS
-    if (role === "admin") {
+    if (role === ROLES.ADMIN) {
       return res.json(order);
     }
 
     // MANAGER(FOR THEIR OWN RESTAURANT)
     const myRestaurantOrder = order.tenantId === String(tenantId);
 
-    if (role === "manager" && myRestaurantOrder) {
+    if (role === ROLES.MANAGER && myRestaurantOrder) {
       return res.json(order);
     }
 
     // CUSTOMER(FOR THEIR OWN ORDER)
-    if (role === "customer") {
+    if (role === ROLES.CUSTOMER) {
       const customer = await customerModel.findOne({ userId });
 
       if (!customer) return next(createHttpError(400, "No customer found."));
@@ -210,6 +211,47 @@ export class OrderController {
     }
 
     return next(createHttpError(403, "Operation not permitted."));
+  };
+
+  getAll = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    const { role, tenant: userTenantId } = req.auth;
+
+    // FOR ADMIN SPECIFIC
+    const tenantId = req.query.tenantId;
+
+    // FOR CUSTOMER (NOT ALLOWED)
+    if (role === ROLES.CUSTOMER) {
+      return next(createHttpError(403, "Permission access denied"));
+    }
+
+    // FOR ADMIN
+    if (role === ROLES.ADMIN) {
+      const filter = {};
+
+      if (tenantId) {
+        filter["tenantId"] = tenantId;
+      }
+
+      // TODO: VERY IMPORTANT ADD PAGINATION HERE
+      const orders = await orderModel
+        .find(filter, {}, { sort: { createdAt: -1 } })
+        .populate("customerId")
+        .exec();
+
+      return res.json(orders);
+    }
+
+    // FOR MANAGER
+    if (role === ROLES.MANAGER) {
+      const orders = await orderModel
+        .find({ tenantId: userTenantId }, {}, { sort: { createdAt: -1 } })
+        .populate("customerId")
+        .exec();
+
+      return res.json(orders);
+    }
+
+    return next(createHttpError(403, "Permission access denied."));
   };
 
   private calculateTotal = async (cart: CartItem[]) => {
