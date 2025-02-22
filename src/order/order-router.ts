@@ -23,4 +23,11 @@ router.get("/mine", authenticate, asyncWrapper(orderController.getMine));
 // GET SINGLE ORDER
 router.get("/:orderId", authenticate, asyncWrapper(orderController.getSingle));
 
+// UPDATE ORDER STATUS
+router.patch(
+  "/change-status/:orderId",
+  authenticate,
+  asyncWrapper(orderController.changeStatus),
+);
+
 export default router;

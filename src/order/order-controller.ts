@@ -254,6 +254,38 @@ export class OrderController {
     return next(createHttpError(403, "Permission access denied."));
   };
 
+  changeStatus = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    const { role, tenant: tenantId } = req.auth;
+    const orderId = req.params.orderId;
+
+    if (role === ROLES.MANAGER || role === ROLES.ADMIN) {
+      const order = await orderModel.findOne({ _id: orderId });
+
+      if (!order) return next(createHttpError(400, "Order not found."));
+
+      const isMyRestaurantOrder = order.tenantId === String(tenantId);
+
+      if (role === ROLES.MANAGER && !isMyRestaurantOrder)
+        return next(createHttpError(403, "Access denied."));
+
+      const updatedOrder = await orderModel.findOneAndUpdate(
+        { _id: orderId },
+        { orderStatus: req.body.status },
+        { new: true },
+      );
+
+      return res.json({ _id: updatedOrder._id });
+
+      // TODO: SEND UPDATED ORDER DATA TO KAFKA
+    }
+
+    return next(createHttpError(403, "Access denied."));
+  };
+
   private calculateTotal = async (cart: CartItem[]) => {
     // GET THE PRODUCT IDS FROM CART
     const productIds = cart.map((item) => item._id);
