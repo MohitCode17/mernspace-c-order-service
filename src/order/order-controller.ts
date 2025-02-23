@@ -12,7 +12,12 @@ import productCacheModel from "../productCache/productCacheModel";
 import toppingCacheModel from "../toppingCache/toppingCacheModel";
 import couponModel from "../coupon/coupon-model";
 import orderModel from "./order-model";
-import { OrderStatus, PaymentMode, PaymentStatus } from "./order-type";
+import {
+  OrderEvents,
+  OrderStatus,
+  PaymentMode,
+  PaymentStatus,
+} from "./order-type";
 import mongoose from "mongoose";
 import idempotencyModel from "../idempotency/idempotency-model";
 import createHttpError from "http-errors";
@@ -118,6 +123,12 @@ export class OrderController {
       }
     }
 
+    // KAFKA MESSAGE
+    const brokerMessage = {
+      event_type: OrderEvents.ORDER_CREATE,
+      data: newOrder[0],
+    };
+
     // PAYMENT PROCESSING
     if (paymentMode === PaymentMode.CARD) {
       const session = await this.paymentGw.createSession({
@@ -128,13 +139,20 @@ export class OrderController {
         idempotencyKey: idempotencyKey as string,
       });
 
-      await this.broker.sendMessage("order", JSON.stringify(newOrder));
+      await this.broker.sendMessage(
+        "order",
+        JSON.stringify(brokerMessage),
+        newOrder[0]._id.toString(),
+      );
 
       return res.json({ paymentUrl: session.paymentUrl });
     }
 
-    // SEND MESSAGE TO BROKER
-    await this.broker.sendMessage("order", JSON.stringify(newOrder));
+    await this.broker.sendMessage(
+      "order",
+      JSON.stringify(brokerMessage),
+      newOrder[0]._id.toString(),
+    );
 
     return res.json({ paymentUrl: null }); // COD
   };
@@ -274,13 +292,24 @@ export class OrderController {
 
       const updatedOrder = await orderModel.findOneAndUpdate(
         { _id: orderId },
+        // TODO: ADD PROPER VALIDATION TO REQ.BODY
         { orderStatus: req.body.status },
         { new: true },
       );
 
-      return res.json({ _id: updatedOrder._id });
+      // KAFKA MESSAGE
+      const brokerMessage = {
+        event_type: OrderEvents.ORDER_STATUS_UPDATE,
+        data: updatedOrder,
+      };
 
-      // TODO: SEND UPDATED ORDER DATA TO KAFKA
+      await this.broker.sendMessage(
+        "order",
+        JSON.stringify(brokerMessage),
+        updatedOrder._id.toString(),
+      );
+
+      return res.json({ _id: updatedOrder._id });
     }
 
     return next(createHttpError(403, "Access denied."));

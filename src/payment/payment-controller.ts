@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { PaymentGW } from "./payment-types";
 import orderModel from "../order/order-model";
-import { PaymentStatus } from "../order/order-type";
+import { OrderEvents, PaymentStatus } from "../order/order-type";
 import { MessageBroker } from "../types/broker";
 
 // stripe listen --forward-to localhost:8000/api/order/payments/webhook
@@ -35,7 +35,17 @@ export class PaymentController {
       );
 
       // TODO: THINK ABOUT BROKER MESSAGE FAIL
-      await this.broker.sendMessage("order", JSON.stringify(updatedOrder));
+      // KAFKA MESSAGE
+      const brokerMessage = {
+        event_type: OrderEvents.PAYMENT_STATUS_UPDATE,
+        data: updatedOrder,
+      };
+
+      await this.broker.sendMessage(
+        "order",
+        JSON.stringify(brokerMessage),
+        updatedOrder._id.toString(),
+      );
     }
 
     return res.json({ success: true });
