@@ -2,16 +2,16 @@ import { ProductMessage } from "../types";
 import productCacheModel from "./productCacheModel";
 
 export const handleProductUpdate = async (value: string) => {
-  // TODO: MAKE SURE TO WRAPE THIS PARSING IN TRY AND CATCH
+  // TODO: MAKE SURE TO WRAP THIS PARSING IN TRY AND CATCH
   const product: ProductMessage = JSON.parse(value);
 
   return await productCacheModel.updateOne(
     {
-      productId: product.id,
+      productId: product.data.id,
     },
     {
       $set: {
-        priceConfiguration: product.priceConfiguration,
+        priceConfiguration: product.data.priceConfiguration,
       },
     },
     {
