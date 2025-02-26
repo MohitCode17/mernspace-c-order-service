@@ -123,10 +123,16 @@ export class OrderController {
       }
     }
 
+    // POPULATE THE CUSTOMER DETAILS
+    // TODO: ADD ERROR HANDLING
+    const customer = await customerModel.findOne({
+      _id: newOrder[0].customerId,
+    });
+
     // KAFKA MESSAGE
     const brokerMessage = {
       event_type: OrderEvents.ORDER_CREATE,
-      data: newOrder[0],
+      data: { ...newOrder[0], customerId: customer },
     };
 
     // PAYMENT PROCESSING
@@ -297,10 +303,14 @@ export class OrderController {
         { new: true },
       );
 
+      const customer = await customerModel.findOne({
+        _id: updatedOrder.customerId,
+      });
+
       // KAFKA MESSAGE
       const brokerMessage = {
         event_type: OrderEvents.ORDER_STATUS_UPDATE,
-        data: updatedOrder,
+        data: { ...updatedOrder.toObject(), customerId: customer },
       };
 
       await this.broker.sendMessage(

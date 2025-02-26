@@ -3,6 +3,7 @@ import { PaymentGW } from "./payment-types";
 import orderModel from "../order/order-model";
 import { OrderEvents, PaymentStatus } from "../order/order-type";
 import { MessageBroker } from "../types/broker";
+import customerModel from "../customer/customer-model";
 
 // stripe listen --forward-to localhost:8000/api/order/payments/webhook
 
@@ -34,11 +35,15 @@ export class PaymentController {
         { new: true },
       );
 
+      const customer = await customerModel.findOne({
+        _id: updatedOrder.customerId,
+      });
+
       // TODO: THINK ABOUT BROKER MESSAGE FAIL
       // KAFKA MESSAGE
       const brokerMessage = {
         event_type: OrderEvents.PAYMENT_STATUS_UPDATE,
-        data: updatedOrder,
+        data: { ...updatedOrder.toObject(), customerId: customer },
       };
 
       await this.broker.sendMessage(
