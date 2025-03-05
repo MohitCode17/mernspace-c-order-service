@@ -42,6 +42,25 @@ export class CouponController {
     return res.status(201).json(coupon);
   };
 
+  getCoupon = async (req: Request, res: Response, next: NextFunction) => {
+    const { tenantId } = req.query;
+    const { role, tenant: userTenant } = req.auth;
+
+    // ROLE BASED AUTHENTICATION
+    if (role !== "admin" && role !== "manager") {
+      return next(createHttpError(401, "Access Denied"));
+    }
+
+    if (role === "manager" && Number(tenantId) !== userTenant) {
+      return next(
+        createHttpError(403, "Manager can access coupon for their own tenant"),
+      );
+    }
+    const query = role === "admin" ? {} : { tenantId: Number(tenantId) };
+    const coupons = await Coupon.find(query);
+    return res.json(coupons);
+  };
+
   verifyCoupon = async (req: Request, res: Response, next: NextFunction) => {
     const result = validationResult(req);
 
