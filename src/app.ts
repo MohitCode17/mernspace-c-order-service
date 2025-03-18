@@ -1,16 +1,24 @@
 import express, { Request, Response } from "express";
-import { globalErrorHandler } from "./common/middleware/globalErrorHandler";
+import cors from "cors";
 import cookieParser from "cookie-parser";
+
+import config from "config";
+import { globalErrorHandler } from "./common/middleware/globalErrorHandler";
 import customerRouter from "./customer/customer-router";
 import couponRouter from "./coupon/coupon-router";
 import orderRouter from "./order/order-router";
 import paymentRouter from "./payment/payment-route";
-import cors from "cors";
 
 const app = express();
+
+const ALLOWED_DOMAINS = [
+  config.get("frontend.clientUI"),
+  config.get("frontend.adminUI"),
+];
+
 app.use(
   cors({
-    origin: ["http://localhost:3000", "http://localhost:5173"],
+    origin: ALLOWED_DOMAINS as string[],
     credentials: true,
   }),
 );
