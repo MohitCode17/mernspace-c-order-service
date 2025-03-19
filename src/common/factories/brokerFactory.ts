@@ -8,7 +8,7 @@ export const createMessageBroker = (): MessageBroker => {
   console.log("Connecting to kafka...");
   // Making singletone
   if (!broker) {
-    broker = new kafkaBroker("order-service", [config.get("kafka.broker")]);
+    broker = new kafkaBroker("order-service", config.get("kafka.broker"));
   }
 
   return broker;
