@@ -48,7 +48,7 @@ export class OrderController {
 
     // CALCULATE DISCOUNT
     let discountPercentage = 0;
-    let formatCouponCode = couponCode ? couponCode.toUpperCase() : null;
+    const formatCouponCode = couponCode ? couponCode.toUpperCase() : null;
 
     if (formatCouponCode) {
       discountPercentage = await this.getDiscountPercentage(
